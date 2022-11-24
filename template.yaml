@@ -1,0 +1,89 @@
+AWSTemplateFormatVersion: 2010-09-09
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  cloudwhistle-bridge:
+
+  This stack allows Cloudwhistle to monitor your account's cost in real-time.
+
+Parameters:
+  CloudwhistleID:
+    Type: String
+    Description: ID to link your AWS account. Keep this confidential.
+    MinLength: 1
+  CloudwhistleSecret:
+    Type: String
+    Description: Secret to verify access from Cloudwhistle. Keep this confidential.
+    MinLength: 1
+
+Resources:
+  BridgeRole:
+    Type: AWS::IAM::Role
+    Description: Role that connects this account with Cloudwhistle.
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: arn:aws:iam::339280581914:role/CloudwhistleBridge
+            Action:
+              - sts:AssumeRole
+            Condition:
+              StringEquals:
+                "sts:ExternalID": !Ref CloudwhistleSecret
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/job-function/ViewOnlyAccess
+      Policies:
+        - PolicyName: CloudwhistleResourceExplorerPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - resource-explorer-2:CreateIndex
+                  - resource-explorer-2:ListIndexes
+                Resource: "*"
+                Sid: CloudwhistleResourceExplorerIndex
+              - Effect: Allow
+                Action:
+                  - resource-explorer-2:CreateView
+                  - resource-explorer-2:ListViews
+                  - resource-explorer-2:Search
+                Resource:
+                  - !Sub arn:aws:resource-explorer-2:us-east1:${AWS::Region}:view/cloudwhistle-*
+                Sid: CloudwhistleResourceExplorerView
+        - PolicyName: CloudwhistleResourceExplorerIAMPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - iam:CreateServiceLinkedRole
+                Resource: "*"
+                Condition:
+                  StringEquals:
+                    "iam:AWSServiceName": resource-explorer-2.amazonaws.com
+        - PolicyName: CloudwhistleExtendedViewOnlyAccess
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - elasticache:List*
+                  - es:Describe*
+                  - es:List*
+                  - rds:List*
+                  - support:Get*
+                Resource: "*"
+
+  Callback:
+    Type: Custom::CloudwhistleCallbackResource
+    Properties:
+      ServiceToken: arn:aws:sns:us-east-1:339280581914:CloudwhistleBridge
+      BridgeRoleArn: !GetAtt BridgeRole.Arn
+      CloudwhistleID: !Ref CloudwhistleID
+
+Outputs:
+  BridgeRoleArn:
+    Value: !GetAtt BridgeRole.Arn
+    Description: The ARN of the role to connect with Cloudwhistle.
