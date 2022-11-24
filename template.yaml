@@ -1,9 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Transform: AWS::Serverless-2016-10-31
-Description: >
-  cloudwhistle-bridge:
-
-  This stack allows Cloudwhistle to monitor your account's cost in real-time.
+Description: Connects Cloudwhistle in order to monitor your account's cost in real-time.
 
 Parameters:
   CloudwhistleID:
@@ -16,10 +12,13 @@ Parameters:
     MinLength: 1
 
 Resources:
+  # This role connects your AWS account with Cloudwhistle.
+  # Check out the policies to see what permissions it requires.
   BridgeRole:
     Type: AWS::IAM::Role
     Description: Role that connects this account with Cloudwhistle.
     Properties:
+      # (1) This document states that Cloudwhistle will be able to assume this role.
       AssumeRolePolicyDocument:
         Version: "2012-10-17"
         Statement:
@@ -31,9 +30,14 @@ Resources:
             Condition:
               StringEquals:
                 "sts:ExternalID": !Ref CloudwhistleSecret
+      # (2) This managed AWS policy states that Cloudwhistle vill have view-only access
+      # to a number of common AWS services. This is needed to create an inventory of
+      # resources and their cost dimensiosn (such as EC2's instance-type)
       ManagedPolicyArns:
         - arn:aws:iam::aws:policy/job-function/ViewOnlyAccess
       Policies:
+        # (3) This policy allows Cloudwhistle to manage a Resource Explorer index and view.
+        # The index ensures that resources are found quickly and efficiently across regions.
         - PolicyName: CloudwhistleResourceExplorerPolicy
           PolicyDocument:
             Version: 2012-10-17
@@ -52,6 +56,8 @@ Resources:
                 Resource:
                   - !Sub arn:aws:resource-explorer-2:us-east1:${AWS::Region}:view/cloudwhistle-*
                 Sid: CloudwhistleResourceExplorerView
+        # (4) This policy is required by the `resource-explorer-2` service (as indicated by the "Condition").
+        # Cloudwhistle will not and can not use this policy itself.
         - PolicyName: CloudwhistleResourceExplorerIAMPolicy
           PolicyDocument:
             Version: 2012-10-17
@@ -63,6 +69,8 @@ Resources:
                 Condition:
                   StringEquals:
                     "iam:AWSServiceName": resource-explorer-2.amazonaws.com
+        # (5) This policy extends AWS' view-only permissions to get access to more services.
+        # This extends the scope of resources Cloudwhistle can track the cost for.
         - PolicyName: CloudwhistleExtendedViewOnlyAccess
           PolicyDocument:
             Version: 2012-10-17
@@ -76,14 +84,20 @@ Resources:
                   - support:Get*
                 Resource: "*"
 
+  # The callback sends a message (with the listed properties) to Cloudwhistle.
+  # This way it receives the ARN of the new role automatically.
   Callback:
     Type: Custom::CloudwhistleCallbackResource
     Properties:
       ServiceToken: arn:aws:sns:us-east-1:339280581914:CloudwhistleBridge
       BridgeRoleArn: !GetAtt BridgeRole.Arn
       CloudwhistleID: !Ref CloudwhistleID
+      Version: 1.0.2
 
 Outputs:
   BridgeRoleArn:
     Value: !GetAtt BridgeRole.Arn
     Description: The ARN of the role to connect with Cloudwhistle.
+  Version:
+    Value: 1.0.2
+    Description: The version of this stack.
