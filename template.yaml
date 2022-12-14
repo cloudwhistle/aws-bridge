@@ -53,8 +53,7 @@ Resources:
                   - resource-explorer-2:CreateView
                   - resource-explorer-2:ListViews
                   - resource-explorer-2:Search
-                Resource:
-                  - !Sub arn:aws:resource-explorer-2:us-east1:${AWS::Region}:view/cloudwhistle-*
+                Resource: "*"
                 Sid: CloudwhistleResourceExplorerView
         # (4) This policy is required by the `resource-explorer-2` service (as indicated by the "Condition").
         # Cloudwhistle will not and can not use this policy itself.
@@ -83,13 +82,14 @@ Resources:
                   - ce:Get* # get Cost Explorer preferences
                   - ce:Describe* # describe Cost Explorer reports/cost categories
                   - ce:List* # list Cost Explorer cost categories
-                  - cur:Describe*, # describe Cost and Usage reports
+                  - cur:Describe* # describe Cost and Usage reports
                   - elasticache:List* # list ElasticCache resources
                   - es:Describe* # describe ElasticSearch resource
                   - es:List* # list ElasticSearch resources
-                  - organizations:Describe*, # describe Organizations
-                  - organizations:List*, # list Organizations
-                  - pricing:*, # query resource prices
+                  - lambda:GetFunctionConfiguration # get Lambda configuration
+                  - organizations:Describe* # describe Organizations
+                  - organizations:List* # list Organizations
+                  - pricing:* # query resource prices
                   - rds:List* # list RDS resources
                   - savingsplans:Describe* # describe Savings Plan
                   - support:Get* # get Support Plan details
@@ -103,12 +103,12 @@ Resources:
       ServiceToken: arn:aws:sns:us-east-1:339280581914:CloudwhistleBridge
       BridgeRoleArn: !GetAtt BridgeRole.Arn
       CloudwhistleID: !Ref CloudwhistleID
-      Version: 1.0.2
+      Version: 1.0.0
 
 Outputs:
   BridgeRoleArn:
     Value: !GetAtt BridgeRole.Arn
     Description: The ARN of the role to connect with Cloudwhistle.
   Version:
-    Value: 1.0.2
+    Value: 1.0.0
     Description: The version of this stack.
