@@ -77,11 +77,22 @@ Resources:
             Statement:
               - Effect: Allow
                 Action:
-                  - elasticache:List*
-                  - es:Describe*
-                  - es:List*
-                  - rds:List*
-                  - support:Get*
+                  - aws-portal:View* # list active regions
+                  - budgets:Describe* # describe Budget
+                  - budgets:View* # list Budgets
+                  - ce:Get* # get Cost Explorer preferences
+                  - ce:Describe* # describe Cost Explorer reports/cost categories
+                  - ce:List* # list Cost Explorer cost categories
+                  - cur:Describe*, # describe Cost and Usage reports
+                  - elasticache:List* # list ElasticCache resources
+                  - es:Describe* # describe ElasticSearch resource
+                  - es:List* # list ElasticSearch resources
+                  - organizations:Describe*, # describe Organizations
+                  - organizations:List*, # list Organizations
+                  - pricing:*, # query resource prices
+                  - rds:List* # list RDS resources
+                  - savingsplans:Describe* # describe Savings Plan
+                  - support:Get* # get Support Plan details
                 Resource: "*"
 
   # The callback sends a message (with the listed properties) to Cloudwhistle.
